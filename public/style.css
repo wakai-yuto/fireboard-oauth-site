@@ -1,0 +1,271 @@
+/* Fireboard マーケティングサイト 共通スタイル（2026-09-05 白紙から再設計）
+   =====================================================================
+   配色はダッシュボード本体（cf-asc-dashbord: dashboard/src/styles.css + lib/palette.ts）の
+   トークンをそのまま使う（ユーザー裁定「ダッシュボード本体の配色に寄せる」）。
+   サイトとプロダクト画面のトーンが同じなので、モック（.mock-*）は本体と同じ .card / .kpi の
+   寸法・角丸・線色で描く。それが「本物に見える」最短路。
+
+   避けたもの（ユーザー指示: AI生成っぽさの排除）
+   - グラデーション背景 / 紫青グラデ：一切使わない。面は --bg と --panel の2段だけ
+   - 中央揃え見出し + 3カラムのアイコン付き特徴カード：使わない。機能は「モック + 説明」の
+     左右交互ブロック、または罫線で区切った番号リスト
+   - ストックアイコン / 絵文字 / 抽象イラスト：使わない（アイコン禁止は本体でも同じ判断）
+   - 影：使わない（本体にも無い）。区切りはすべて 1px の --line
+   - 角丸：card 8px / kpi 10px / ボタン 6px（本体と同値）。それ以上丸めない */
+
+:root {
+  --bg: #0d1117;
+  --panel: #161b22;
+  --panel-2: #1c2230;
+  --line: #232b36;
+  --fg: #e6edf3;
+  --muted: #8b95a6;
+  --accent: #58a6ff;
+  --green: #3fb950;
+  --amber: #d29922;
+  --red: #f85149;
+  --pink: #ff7eb6;
+  --purple: #a371f7;
+  --cyan: #56d4dd;
+  --sidebar: #0a0d12;
+}
+
+* { box-sizing: border-box; }
+html, body { background: var(--bg); color: var(--fg); margin: 0; min-height: 100vh; }
+body {
+  font: 16px/1.7 ui-sans-serif, system-ui, -apple-system, "Hiragino Kaku Gothic ProN",
+    "Yu Gothic", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+h1, h2, h3, h4 { margin: 0; font-weight: 700; letter-spacing: -0.01em; }
+p { margin: 0; }
+code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.9em; color: var(--fg); }
+.num { font-variant-numeric: tabular-nums; }
+
+/* ---------- レイアウト ---------- */
+.wrap { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
+.site-header { border-bottom: 1px solid var(--line); position: sticky; top: 0; background: rgba(13,17,23,0.94); backdrop-filter: blur(6px); z-index: 20; }
+.site-header .wrap { display: flex; align-items: center; justify-content: space-between; gap: 16px; height: 56px; }
+.wordmark { font-size: 16px; font-weight: 700; color: var(--fg); display: flex; align-items: center; gap: 8px; }
+.wordmark:hover { text-decoration: none; }
+.wordmark .sq { width: 10px; height: 10px; background: var(--accent); border-radius: 2px; }
+.site-header nav { display: flex; align-items: center; gap: 22px; font-size: 14px; }
+.site-header nav a { color: var(--muted); }
+.site-header nav a:hover, .site-header nav a.active { color: var(--fg); text-decoration: none; }
+/* ナビ内のボタンは上の `.site-header nav a` に色を奪われる（詳細度 0,1,2 > .btn-primary の 0,1,0）ので
+   明示的に戻す。2026-09-05 に「ヘッダーの『無料で始める』が読みにくい」で発覚 */
+.site-header nav a.btn-primary, .site-header nav a.btn-primary:hover { color: #06121f; }
+.site-header nav .sep { width: 1px; height: 18px; background: var(--line); }
+
+.btn { display: inline-flex; align-items: center; gap: 8px; padding: 9px 16px; border-radius: 6px; font-size: 14px; font-weight: 600; border: 1px solid transparent; line-height: 1.3; }
+.btn:hover { text-decoration: none; }
+.btn-primary { background: var(--accent); color: #06121f; }
+.btn-primary:hover { background: #7cb8ff; }
+.btn-ghost { color: var(--fg); border-color: var(--line); }
+.btn-ghost:hover { background: var(--panel-2); }
+.btn-lg { padding: 12px 22px; font-size: 15px; }
+
+/* ---------- ヒーロー ---------- */
+.hero { padding: 72px 0 40px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 40px; align-items: end; }
+.hero h1 { font-size: 44px; line-height: 1.3; }
+.hero .lead { color: var(--muted); font-size: 17px; margin-top: 18px; max-width: 44ch; }
+.hero .cta-row { display: flex; gap: 12px; margin-top: 28px; flex-wrap: wrap; }
+.hero .note { color: var(--muted); font-size: 12.5px; margin-top: 12px; }
+.hero-facts { font-size: 13.5px; color: var(--muted); display: grid; gap: 8px; border-left: 1px solid var(--line); padding-left: 20px; }
+.hero-facts b { color: var(--fg); font-weight: 600; }
+
+/* ---------- セクション ---------- */
+.section { padding: 72px 0 0; }
+.section-head { margin-bottom: 28px; max-width: 64ch; }
+.section-head .kicker { color: var(--accent); font-size: 12.5px; font-weight: 700; letter-spacing: 0.06em; margin-bottom: 10px; display: block; }
+.section-head h2 { font-size: 28px; line-height: 1.35; }
+.section-head p { color: var(--muted); margin-top: 12px; }
+
+/* データソース: ロゴは使わない（多色の公式ロゴは配色方針に反する・利用許諾の確認が要る）。
+   1 ソース = 1 行（名前 / 取得内容 / 認証）。2026-09-05 に ASC を外して 5 件になり、
+   3 カラムの格子だと最終行が欠けるので行レイアウトに変えた（件数が変わっても崩れない）。 */
+.sources { border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--panel); }
+.source { display: grid; grid-template-columns: 200px 1fr 240px; gap: 20px; align-items: baseline; padding: 16px 20px; border-bottom: 1px solid var(--line); }
+.source:last-child { border-bottom: none; }
+.source .name { font-weight: 600; font-size: 15px; }
+.source .via { display: block; color: var(--muted); font-size: 12px; font-weight: 400; }
+.source .what { color: var(--muted); font-size: 13.5px; }
+.source .auth { font-size: 12px; color: var(--muted); text-align: right; }
+.source .auth code { color: var(--accent); }
+
+/* 機能ブロック: モック + 説明 の左右交互 */
+.feature { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 4fr); gap: 40px; align-items: center; padding: 40px 0; border-top: 1px solid var(--line); }
+.feature.flip { grid-template-columns: minmax(0, 4fr) minmax(0, 5fr); }
+.feature.flip .mock-panel { order: 2; }
+.feature h3 { font-size: 22px; line-height: 1.4; }
+.feature .body { color: var(--muted); margin-top: 12px; }
+.feature ul { margin: 12px 0 0; padding-left: 1.1em; color: var(--muted); font-size: 14.5px; }
+.feature li { margin: 6px 0; }
+.feature li b { color: var(--fg); font-weight: 600; }
+.feature .more { display: inline-block; margin-top: 16px; font-size: 14px; }
+
+/* 仕組み: 番号リスト（横並び、罫線区切り） */
+.steps { display: grid; grid-template-columns: repeat(4, 1fr); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.step { padding: 20px; border-right: 1px solid var(--line); background: var(--panel); }
+.step:last-child { border-right: none; }
+.step .n { font-size: 12px; color: var(--muted); letter-spacing: 0.06em; margin-bottom: 8px; }
+.step h4 { font-size: 15px; margin-bottom: 6px; }
+.step p { color: var(--muted); font-size: 13.5px; }
+
+/* 事実の帯（実績数字やロゴの代わり。嘘にならない事実だけ） */
+.facts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.fact { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 16px 18px; }
+.fact .v { font-size: 26px; font-weight: 600; line-height: 1.2; }
+.fact .v small { font-size: 14px; color: var(--muted); font-weight: 500; margin-left: 4px; }
+.fact .k { color: var(--muted); font-size: 13px; margin-top: 6px; }
+
+/* FAQ */
+.faq { border-top: 1px solid var(--line); }
+.faq .q { border-bottom: 1px solid var(--line); padding: 18px 0; display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); gap: 24px; }
+.faq .q h4 { font-size: 15px; }
+.faq .q p { color: var(--muted); font-size: 14.5px; }
+
+/* CTA 帯 */
+.cta { margin: 80px 0; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); padding: 40px; display: flex; align-items: center; justify-content: space-between; gap: 24px; flex-wrap: wrap; }
+.cta h2 { font-size: 22px; }
+.cta p { color: var(--muted); margin-top: 6px; }
+
+/* フッター */
+footer { border-top: 1px solid var(--line); padding: 32px 0 40px; color: var(--muted); font-size: 13.5px; }
+footer .wrap { display: flex; justify-content: space-between; gap: 24px; flex-wrap: wrap; }
+footer .cols { display: flex; gap: 48px; flex-wrap: wrap; }
+footer h5 { margin: 0 0 8px; font-size: 12px; color: var(--fg); letter-spacing: 0.04em; }
+footer a { display: block; color: var(--muted); margin: 4px 0; }
+footer a:hover { color: var(--fg); }
+footer .legal { margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--line); font-size: 12.5px; }
+
+/* ---------- 機能詳細ページ ---------- */
+.page-hero { padding: 64px 0 24px; max-width: 70ch; }
+.page-hero .kicker { color: var(--accent); font-size: 12.5px; font-weight: 700; letter-spacing: 0.06em; display: block; margin-bottom: 10px; }
+.page-hero h1 { font-size: 36px; line-height: 1.35; }
+.page-hero p { color: var(--muted); font-size: 16.5px; margin-top: 14px; }
+.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); margin-bottom: 8px; }
+.tabs a { padding: 10px 14px; color: var(--muted); font-size: 14px; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+.tabs a:hover { color: var(--fg); text-decoration: none; }
+.tabs a.active { color: var(--fg); border-bottom-color: var(--accent); }
+
+/* ---------- 法務ページ ---------- */
+main.policy { max-width: 760px; margin: 0 auto; padding: 56px 24px 88px; }
+.policy h1 { font-size: 28px; margin-bottom: 6px; }
+.policy .updated { color: var(--muted); font-size: 13px; margin-bottom: 32px; }
+.policy section { margin: 28px 0; }
+.policy section h2 { font-size: 17px; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--line); }
+.policy section p, .policy section li { color: var(--muted); }
+.policy section ul { padding-left: 1.2em; }
+.policy section li { margin: 6px 0; }
+.policy section li b { color: var(--fg); font-weight: 600; }
+.policy table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 14px; }
+.policy th, .policy td { border: 1px solid var(--line); padding: 8px 12px; text-align: left; vertical-align: top; }
+.policy th { color: var(--muted); background: var(--panel); font-weight: 600; width: 9em; white-space: nowrap; }
+.policy .draft { background: var(--panel); border: 1px solid var(--amber); border-radius: 8px; padding: 12px 16px; font-size: 13.5px; margin-bottom: 28px; }
+.policy .draft b { color: var(--amber); }
+
+/* =====================================================================
+   モック（本体の .card / .kpi / table と同じ寸法・線・色で描く）
+   ヒーローに載せる大きい画面（.mock-app）と、機能ブロック用の切り抜き（.mock-panel）の2種。
+   数値はすべて架空アプリ「Moca」のダミー。指標同士が矛盾しないようにだけ気をつける
+   （例: MRR ÷ アクティブ会員 ≒ 単価）。 */
+.mock-app { border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--bg); font-size: 12px; display: grid; grid-template-columns: 168px 1fr; }
+.mock-app .sb { background: var(--sidebar); border-right: 1px solid var(--line); padding: 12px 8px; }
+.mock-app .sb .brand { font-weight: 700; font-size: 13px; padding: 4px 10px 10px; display: flex; align-items: center; gap: 6px; }
+.mock-app .sb .brand .sq { width: 8px; height: 8px; background: var(--accent); border-radius: 2px; }
+.mock-app .sb .sec { color: var(--muted); font-size: 9.5px; letter-spacing: 0.08em; padding: 8px 10px 2px; opacity: 0.75; }
+.mock-app .sb .it { color: var(--muted); padding: 5px 10px; border-radius: 5px; display: flex; align-items: center; gap: 7px; }
+.mock-app .sb .it i { width: 7px; height: 7px; border-radius: 2px; display: inline-block; }
+.mock-app .sb .it.on { color: var(--fg); background: var(--panel-2); }
+.mock-app .ct { padding: 12px 14px; min-width: 0; }
+.mock-app .ph { display: flex; align-items: flex-start; justify-content: space-between; padding-bottom: 8px; border-bottom: 1px solid var(--line); margin-bottom: 10px; }
+.mock-app .ph h4 { font-size: 15px; font-weight: 700; }
+.mock-app .ph .sub { color: var(--muted); font-size: 10.5px; margin-top: 2px; }
+.mock-app .rt { display: inline-flex; border: 1px solid var(--line); border-radius: 5px; padding: 2px; }
+.mock-app .rt span { padding: 2px 8px; color: var(--muted); border-radius: 4px; }
+.mock-app .rt span.on { color: var(--fg); background: var(--panel-2); }
+
+.mkpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 10px; }
+.mkpi { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 9px 11px; display: flex; flex-direction: column; gap: 3px; }
+.mkpi .l { color: var(--muted); font-size: 9.5px; letter-spacing: 0.04em; }
+.mkpi .v { font-size: 18px; font-weight: 600; line-height: 1.15; font-variant-numeric: tabular-nums; }
+.mkpi .v small { font-size: 10px; color: var(--muted); font-weight: 500; margin-left: 2px; }
+.mkpi .d { font-size: 9.5px; color: var(--muted); }
+.mkpi .d.up { color: var(--green); }
+.mkpi .d.dn { color: var(--red); }
+.mkpi svg { width: 100%; height: 22px; display: block; margin-top: 2px; }
+
+.mgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.mcard { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; min-width: 0; }
+.mcard .t { font-size: 11.5px; font-weight: 600; margin-bottom: 2px; }
+.mcard .desc { color: var(--muted); font-size: 9.5px; margin-bottom: 6px; }
+.mcard svg { width: 100%; display: block; }
+.mcard .lg { display: flex; gap: 10px; color: var(--muted); font-size: 9.5px; margin-top: 4px; flex-wrap: wrap; }
+.mcard .lg i { width: 8px; height: 8px; border-radius: 2px; display: inline-block; margin-right: 4px; vertical-align: -1px; }
+
+/* 切り抜きパネル（機能ブロック用）: card 1〜2枚ぶんを拡大して見せる */
+.mock-panel { border: 1px solid var(--line); border-radius: 8px; background: var(--bg); padding: 12px; font-size: 12px; min-width: 0; }
+.mock-panel .mcard { margin-bottom: 8px; }
+.mock-panel .mcard:last-child { margin-bottom: 0; }
+.mock-panel .mkpis { grid-template-columns: repeat(3, 1fr); }
+
+/* 表（本体の table と同じ作法: 見出しは uppercase の muted、数値は右寄せ） */
+.mtable { width: 100%; border-collapse: collapse; font-size: 10.5px; }
+.mtable th, .mtable td { padding: 5px 8px; border-bottom: 1px solid var(--line); text-align: left; white-space: nowrap; }
+.mtable th { color: var(--muted); font-weight: 600; font-size: 9px; text-transform: uppercase; letter-spacing: 0.04em; }
+.mtable td.num, .mtable th.num { text-align: right; font-variant-numeric: tabular-nums; }
+.mtable tr:last-child td { border-bottom: none; }
+.badge { display: inline-block; padding: 1px 6px; border-radius: 4px; font-size: 9px; font-weight: 600; letter-spacing: 0.03em; color: var(--muted); background: var(--panel-2); }
+.badge.ok { color: var(--green); background: rgba(63,185,80,0.12); }
+.badge.warn { color: var(--amber); background: rgba(210,153,34,0.14); }
+.badge.bad { color: var(--red); background: rgba(248,81,73,0.14); }
+.badge.live { color: var(--accent); background: rgba(88,166,255,0.12); }
+
+/* ヒートマップ（本体 HEAT_RAMP と同じ 6 段） */
+.heat { display: grid; grid-template-columns: 34px repeat(6, 1fr); gap: 2px; font-size: 9px; }
+.heat .h { color: var(--muted); text-align: center; padding-bottom: 2px; }
+.heat .r { color: var(--muted); display: flex; align-items: center; }
+.heat .c { height: 20px; border-radius: 2px; display: flex; align-items: center; justify-content: center; color: #fff; font-variant-numeric: tabular-nums; }
+
+/* ファネル（横バー） */
+.funnel .row { display: grid; grid-template-columns: 92px 1fr 52px; align-items: center; gap: 8px; font-size: 10.5px; margin: 5px 0; }
+.funnel .row .lab { color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.funnel .row .bar { height: 14px; background: var(--panel-2); border-radius: 3px; overflow: hidden; }
+.funnel .row .bar i { display: block; height: 100%; background: var(--accent); }
+.funnel .row .val { text-align: right; font-variant-numeric: tabular-nums; }
+
+/* ---------- レスポンシブ ---------- */
+@media (max-width: 960px) {
+  .hero { grid-template-columns: 1fr; gap: 28px; padding-top: 48px; }
+  .hero h1 { font-size: 34px; }
+  .hero-facts { border-left: none; padding-left: 0; border-top: 1px solid var(--line); padding-top: 16px; }
+  .feature, .feature.flip { grid-template-columns: 1fr; gap: 20px; }
+  .feature.flip .mock-panel { order: 0; }
+  .source { grid-template-columns: 1fr; gap: 4px; }
+  .source .auth { text-align: left; }
+  .steps { grid-template-columns: 1fr 1fr; }
+  .step:nth-child(2n) { border-right: none; }
+  .step:nth-child(-n+2) { border-bottom: 1px solid var(--line); }
+  .facts { grid-template-columns: 1fr; }
+  .faq .q { grid-template-columns: 1fr; gap: 6px; }
+}
+@media (max-width: 640px) {
+  .site-header nav a:not(.btn) { display: none; }
+  .hero h1 { font-size: 28px; }
+  .section { padding-top: 56px; }
+  .section-head h2 { font-size: 24px; }
+  .mock-app { grid-template-columns: 1fr; }
+  .mock-app .sb { display: none; }
+  .mkpis { grid-template-columns: 1fr 1fr; }
+  .mgrid { grid-template-columns: 1fr; }
+  .steps { grid-template-columns: 1fr; }
+  .step { border-right: none !important; border-bottom: 1px solid var(--line); }
+  .step:last-child { border-bottom: none; }
+  .cta { padding: 28px 22px; margin: 56px 0; }
+  .page-hero h1 { font-size: 28px; }
+  .tabs { overflow-x: auto; }
+  .tabs a { white-space: nowrap; }
+}

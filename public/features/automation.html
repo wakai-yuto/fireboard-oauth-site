@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>運用自動化 — Fireboard</title>
+<meta name="description" content="定時の自動取り込み、GA4 export の差分取り込み、実行ごとの取り込み履歴、BigQuery のコスト可視化。Fireboard の運用自動化の画面。" />
+<!-- 機能詳細: 運用自動化（本体の /runs /usage + cron の設計に相当）。
+     cron 時刻（JST 06/07/08）と「GA4 export は更新されたテーブルだけ読む」は本体の実装事実
+     （wrangler.jsonc の crons / src/sources/ga4-tables.ts）。数値は架空アプリ Moca のダミー。 -->
+<link rel="stylesheet" href="../style.css" />
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="wordmark" href="../index.html"><span class="sq"></span>Fireboard</a>
+    <nav>
+      <a href="../index.html#features" class="active">機能</a>
+      <a href="../index.html#sources">データ連携</a>
+      <a href="../index.html#how">仕組み</a>
+      <a href="../index.html#faq">FAQ</a>
+      <span class="sep"></span>
+      <a href="../index.html#login">ログイン</a>
+      <a href="../index.html#signup" class="btn btn-primary">無料で始める</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="page-hero">
+    <span class="kicker">機能 / 運用自動化</span>
+    <h1>取り込みは cron、失敗は画面に残る</h1>
+    <p>日次レポートを人が作らない、というのが前提です。取り込みは定時に自動で走り、実行ごとの結果はソース単位で記録されます。失敗に気づくのが翌週、という状態をなくします。</p>
+  </div>
+  <div class="tabs">
+    <a href="revenue.html">収益</a>
+    <a href="users.html">ユーザー理解</a>
+    <a href="automation.html" class="active">運用自動化</a>
+  </div>
+
+  <div class="feature">
+    <div class="mock-panel">
+      <div class="mcard">
+        <div class="t">cron スケジュール（JST）</div>
+        <table class="mtable">
+          <thead><tr><th>時刻</th><th>ソース</th><th>内容</th></tr></thead>
+          <tbody>
+            <tr><td class="num">06:00</td><td>loginbonus</td><td>Firestore user_log から前日の受取を集計</td></tr>
+            <tr><td class="num">07:00</td><td>subscription / sticket / demographics / heavyusers</td><td>RevenueCat・Firestore を取得</td></tr>
+            <tr><td class="num">08:00</td><td>abtest</td><td>BigQuery の更新テーブルだけを差分取得</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="mcard">
+        <div class="t">取り込み履歴（直近 24 時間）</div>
+        <table class="mtable">
+          <thead><tr><th>ソース</th><th>開始</th><th class="num">行数</th><th class="num">所要</th><th>状態</th></tr></thead>
+          <tbody>
+            <tr><td>loginbonus</td><td>06:00:02</td><td class="num">1,204</td><td class="num">3.1s</td><td><span class="badge ok">OK</span></td></tr>
+            <tr><td>subscription</td><td>07:00:01</td><td class="num">4,120</td><td class="num">11.8s</td><td><span class="badge ok">OK</span></td></tr>
+            <tr><td>sticket</td><td>07:00:01</td><td class="num">2,318</td><td class="num">9.4s</td><td><span class="badge ok">OK</span></td></tr>
+            <tr><td>asc</td><td>07:00:03</td><td class="num">31</td><td class="num">2.4s</td><td><span class="badge ok">OK</span></td></tr>
+            <tr><td>demographics</td><td>07:00:04</td><td class="num">88,204</td><td class="num">3m 12s</td><td><span class="badge ok">OK</span></td></tr>
+            <tr><td>heavyusers</td><td>07:03:20</td><td class="num">—</td><td class="num">41.0s</td><td><span class="badge bad">ERROR</span></td></tr>
+            <tr><td>abtest</td><td>08:00:01</td><td class="num">0</td><td class="num">0.8s</td><td><span class="badge warn">SKIP</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div>
+      <h3>定時取り込みと履歴</h3>
+      <p class="body">ソースごとに時刻をずらして毎日走ります。Firestore の大規模スキャンが数分かかるのは正常な挙動で、その所要時間も履歴に残ります。失敗した実行はエラー本文つきで残り、画面の健全性バッジが変わります。</p>
+      <ul>
+        <li><b>実行ごとの記録</b> — 開始時刻・行数・所要時間・状態（OK / SKIP / ERROR）</li>
+        <li><b>エラー本文</b> — 相手先のステータスとレスポンス。資格情報は含めない</li>
+        <li><b>手動実行</b> — 管理画面から任意のソースを即時に取り込み直せる</li>
+        <li><b>健全性バッジ</b> — 全画面の上部に「最終取り込み」と「異常の有無」</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="feature flip">
+    <div>
+      <h3>差分取り込み</h3>
+      <p class="body">GA4 の BigQuery export は、日次テーブルがその日の約 1 日後に作られ、約 4〜5 日後の最終更新を最後に確定します。Fireboard はテーブルの <code>last_modified_time</code> を見て、前回の取り込み以降に書き換わったテーブルだけを読みます。「直近 N 日」のような決め打ちはしません。</p>
+      <ul>
+        <li><b>更新テーブルのみ</b> — スキャン対象を確定済みでないテーブルに限定</li>
+        <li><b>全量の再取り込み</b> — 必要なときは full モードで全期間を取り直せる</li>
+        <li><b>差分と全量の一致確認</b> — 両モードで同じ値になることを確認した上で運用</li>
+      </ul>
+    </div>
+    <div class="mock-panel">
+      <div class="mcard">
+        <div class="t">GA4 export の取り込み対象（本日）</div>
+        <table class="mtable">
+          <thead><tr><th>テーブル</th><th>最終更新</th><th>判定</th></tr></thead>
+          <tbody>
+            <tr><td>events_20260901</td><td>09/02 03:14</td><td><span class="badge">確定済み・スキップ</span></td></tr>
+            <tr><td>events_20260902</td><td>09/04 22:41</td><td><span class="badge live">更新あり・取得</span></td></tr>
+            <tr><td>events_20260903</td><td>09/05 01:07</td><td><span class="badge live">更新あり・取得</span></td></tr>
+            <tr><td>events_20260904</td><td>09/05 06:52</td><td><span class="badge live">更新あり・取得</span></td></tr>
+            <tr><td>events_intraday_20260905</td><td>—</td><td><span class="badge">対象外</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="feature">
+    <div class="mock-panel">
+      <div class="mkpis">
+        <div class="mkpi"><div class="l">今月のスキャン量</div><div class="v">412<small>GB</small></div><div class="d">前月 538 GB</div></div>
+        <div class="mkpi"><div class="l">概算費用</div><div class="v">$2.5</div><div class="d">$6.25 / TiB（設定値）</div></div>
+        <div class="mkpi"><div class="l">最大の呼び出し元</div><div class="v">ingest_sticket</div><div class="d">161 GB</div></div>
+      </div>
+      <div class="mcard">
+        <div class="t">BigQuery スキャン量（呼び出し元別・今月）</div>
+        <table class="mtable">
+          <thead><tr><th>呼び出し元</th><th class="num">スキャン</th><th class="num">クエリ数</th><th class="num">割合</th></tr></thead>
+          <tbody>
+            <tr><td>ingest_sticket</td><td class="num">161.7 GB</td><td class="num">31</td><td class="num">39%</td></tr>
+            <tr><td>ingest_abtest</td><td class="num">98.2 GB</td><td class="num">31</td><td class="num">24%</td></tr>
+            <tr><td>ingest_subscription</td><td class="num">84.0 GB</td><td class="num">31</td><td class="num">20%</td></tr>
+            <tr><td>api_nav_cv</td><td class="num">11.6 GB</td><td class="num">204</td><td class="num">3%</td></tr>
+            <tr><td>未分類</td><td class="num">56.9 GB</td><td class="num">—</td><td class="num">14%</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div>
+      <h3>コストの可視化</h3>
+      <p class="body">BigQuery のスキャン量を呼び出し元（どの取り込み・どの画面の操作か）ごとに集計し、単価から概算費用を出します。主役は定時の取り込みで、ユーザーの画面操作ではありません — この内訳は見ないと分からないので、画面に出しています。</p>
+      <ul>
+        <li><b>呼び出し元別</b> — ingest / API / 未分類のスキャン量とクエリ数</li>
+        <li><b>概算費用</b> — 単価は設定値。請求明細と突き合わせられるよう語彙を揃える</li>
+        <li><b>月次推移</b> — 差分取り込みの効果をスキャン量で確認</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="cta">
+    <div><h2>集計を人がやらない状態にする</h2><p>連携が終われば、翌朝 08:00 にはすべてのソースが取り込まれています。</p></div>
+    <a href="../index.html#signup" class="btn btn-primary btn-lg">無料で始める</a>
+  </div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="cols">
+      <div><h5>FIREBOARD</h5><a href="revenue.html">収益</a><a href="users.html">ユーザー理解</a><a href="automation.html">運用自動化</a><a href="../index.html#sources">データ連携</a></div>
+      <div><h5>アカウント</h5><a href="../index.html#signup">無料で始める</a><a href="../index.html#login">ログイン</a></div>
+      <div><h5>規約</h5><a href="../privacy.html">プライバシーポリシー</a><a href="../terms.html">利用規約</a></div>
+      <div><h5>運営</h5><span>株式会社リアルバインド</span><a href="mailto:kei_fkd@realbind.jp">kei_fkd@realbind.jp</a></div>
+    </div>
+  </div>
+  <div class="wrap legal">© 2026 株式会社リアルバインド</div>
+</footer>
+
+</body>
+</html>
