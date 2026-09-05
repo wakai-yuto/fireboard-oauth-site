@@ -4,10 +4,11 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Fireboard — アプリ運用の数字を、毎朝ひとつの画面に</title>
-<meta name="description" content="RevenueCat・Firestore・BigQuery・GA4・AdMob を毎日自動で取り込み、獲得から課金・継続・経営まで一枚のダッシュボードで追えるアプリ運用の分析基盤。" />
+<meta name="description" content="RevenueCat・Firestore・BigQuery（GA4 export）・AdMob を毎日自動で取り込み、獲得から課金・継続・経営まで一枚のダッシュボードで追えるアプリ運用の分析基盤。" />
 <!-- 2026-09-05 白紙から再設計（決定事項）
      ・主語: 「アプリ運用全般の分析基盤」（GA4/Firestore専用ではない）。根拠は元アプリ
-       cf-asc-dashbord の実装: RevenueCat / Firestore / BigQuery / GA4 export / AdMob の 5 ソース、
+       cf-asc-dashbord の実装: RevenueCat / Firestore / BigQuery（GA4 export を含む）/ AdMob の 4 ソース、
+       （GA4 は Admin/Data API を呼ばず BigQuery export を同じスコープで読むだけなので、サイトでは BigQuery に統合。2026-09-05）
        画面はジャーニー順（獲得→課金→継続→ユーザー→実験→経営）
        ⚠️ App Store Connect は本体では使っているが、このサイトでは載せない（2026-09-05 ユーザー裁定:
        ASC は OAuth 非対応で、サイトは OAuth 連携できるソースだけに揃える）。獲得系の指標は
@@ -53,10 +54,10 @@
       <a href="#signup" class="btn btn-primary btn-lg">無料で始める</a>
       <a href="#features" class="btn btn-ghost btn-lg">機能を見る</a>
     </div>
-    <p class="note">クレジットカード不要。連携はすべて読み取り専用です。</p>
+    <p class="note">クレジットカード不要。元データは読み取りのみ。書き換えません。</p>
   </div>
   <div class="hero-facts">
-    <div><b>5 つのデータソース</b>に対応。RevenueCat、Firestore、BigQuery、GA4、AdMob。すべて OAuth 2.0 で連携。</div>
+    <div><b>4 つのデータソース</b>に対応。RevenueCat、Firestore、BigQuery（Firebase Analytics / GA4 の export）、AdMob。すべて OAuth 2.0 で連携。</div>
     <div><b>毎日 3 回</b>（JST 06:00 / 07:00 / 08:00）の定時取り込み。手動エクスポートは不要。</div>
     <div><b>取り込み履歴と鮮度</b>を画面で確認。どのソースがいつ更新されたか、失敗したかが分かる。</div>
   </div>
@@ -177,8 +178,8 @@
 <section class="wrap section" id="sources">
   <div class="section-head">
     <span class="kicker">データ連携</span>
-    <h2>5 つのソースから、毎日自動で取り込む</h2>
-    <p>連携はすべて OAuth 2.0 の認可で行い、読み取り専用です。API キーを預かることはなく、Fireboard からデータを書き換えることもありません。</p>
+    <h2>4 つのソースから、毎日自動で取り込む</h2>
+    <p>連携はすべて OAuth 2.0 の認可で行います。API キーを預かることはありません。取り込み元のデータ（イベント・ログ・契約）は読むだけで、書き換え・削除はしません。集計結果は利用者の BigQuery プロジェクト内の専用データセットに Fireboard 自身のテーブルとして保存します。</p>
   </div>
   <div class="sources">
     <div class="source">
@@ -188,25 +189,23 @@
     </div>
     <div class="source">
       <div class="name">Firestore</div>
-      <div class="what">ユーザーログ・残高台帳・消費ログ（継続率、属性、ヘビーユーザー）</div>
-      <div class="auth">認証: <code>Google OAuth 2.0 / サービスアカウント</code></div>
+      <div class="what">ユーザーログ・残高台帳・消費ログ（継続率、属性、ヘビーユーザー）。読み取り API のみを呼び出します</div>
+      <div class="auth">認証: <code>Google OAuth 2.0</code><span class="scope">datastore</span></div>
     </div>
     <div class="source">
-      <div class="name">BigQuery</div>
-      <div class="what">Firebase Analytics のイベント（A/B テスト、課金導線）</div>
-      <div class="auth">認証: <code>Google OAuth 2.0 / サービスアカウント</code></div>
-    </div>
-    <div class="source">
-      <div class="name">Google Analytics 4 <span class="via">BigQuery export 経由</span></div>
-      <div class="what">GA4 の日次イベントテーブル。更新されたテーブルだけを差分取り込み</div>
-      <div class="auth">認証: <code>Google OAuth 2.0 / サービスアカウント</code></div>
+      <div class="name">BigQuery <span class="via">Firebase Analytics / GA4 の export</span></div>
+      <div class="what">GA4 のイベント（A/B テスト・課金導線）。BigQuery export を前提とし、GA4 側の API 権限は要求しません。更新された日次テーブルだけを差分取り込み</div>
+      <div class="auth">認証: <code>Google OAuth 2.0</code><span class="scope">bigquery.readonly / bigquery</span></div>
     </div>
     <div class="source">
       <div class="name">AdMob</div>
       <div class="what">広告収益（Network Report）。経営画面の売上内訳に合算</div>
-      <div class="auth">認証: <code>Google OAuth 2.0</code></div>
+      <div class="auth">認証: <code>Google OAuth 2.0</code><span class="scope">admob.readonly</span></div>
     </div>
   </div>
+  <!-- 5. 前提条件。GA4 の BigQuery リンク作成・カスタムディメンション登録は Fireboard が代行しない
+       （= analytics.edit を要求しない理由）。要求スコープの正式一覧は privacy.html 第 2 条 -->
+  <p class="sources-note">Firebase Analytics から BigQuery への export は事前に有効化してください。Fireboard は GA4 の設定を変更しません。要求する権限の一覧は<a href="privacy.html#scopes">プライバシーポリシー</a>に記載しています。</p>
 </section>
 
 <!-- ============ 機能（テーマ別 3 ブロック） ============ -->
@@ -336,7 +335,7 @@
     <h2>連携したら、あとは毎朝見るだけ</h2>
   </div>
   <div class="steps">
-    <div class="step"><div class="n">01</div><h4>ソースを連携する</h4><p>Google アカウントと RevenueCat アカウントで認可します。API キーの発行・登録は不要で、すべて読み取り専用です。</p></div>
+    <div class="step"><div class="n">01</div><h4>ソースを連携する</h4><p>Google アカウントと RevenueCat アカウントで認可します。API キーの発行・登録は不要で、元データを書き換えることはありません。</p></div>
     <div class="step"><div class="n">02</div><h4>定時に取り込む</h4><p>毎日 JST 06:00〜08:00 に cron が走り、前日分のデータを取得します。</p></div>
     <div class="step"><div class="n">03</div><h4>時系列で蓄積する</h4><p>取得した値は日次スナップショットとして残り、チャーン率や継続率はそこから算出されます。</p></div>
     <div class="step"><div class="n">04</div><h4>画面で見る・共有する</h4><p>ジャーニー順のダッシュボードを URL でチームに共有。スマートフォンでも読めます。</p></div>
@@ -346,7 +345,7 @@
 <!-- ============ 事実の帯 ============ -->
 <section class="wrap section">
   <div class="facts">
-    <div class="fact"><div class="v">読み取り専用</div><div class="k">Fireboard が連携先のデータを変更・削除することはありません</div></div>
+    <div class="fact"><div class="v">元データは読むだけ</div><div class="k">Fireboard が取り込み元のデータを変更・削除することはありません。集計テーブルは専用データセットに分けて置きます</div></div>
     <div class="fact"><div class="v">OAuth 2.0</div><div class="k">Google 系ソースは Google アカウントの認可で連携。アクセス権はいつでも取り消せます</div></div>
     <div class="fact"><div class="v">Limited Use</div><div class="k">Google API から取得したデータは Google API Services User Data Policy に従って扱います</div></div>
   </div>
@@ -360,7 +359,7 @@
   </div>
   <div class="faq">
     <div class="q"><h4>iOS だけ、Android だけのアプリでも使えますか？</h4><p>使えます。サブスクと売上は RevenueCat 経由で取るので、App Store / Play のどちらか一方でも、両方でも同じ画面になります。</p></div>
-    <div class="q"><h4>Firebase を使っていないアプリでも使えますか？</h4><p>Firestore / BigQuery / GA4 に依存する画面（継続率・属性・ファネル・A/B テスト）は使えません。ストア・サブスク・広告収益の画面は Firebase なしで動きます。</p></div>
+    <div class="q"><h4>Firebase を使っていないアプリでも使えますか？</h4><p>Firestore / BigQuery（GA4 export）に依存する画面（継続率・属性・ファネル・A/B テスト）は使えません。ストア・サブスク・広告収益の画面は Firebase なしで動きます。</p></div>
     <div class="q"><h4>料金は？</h4><p>準備中です。登録は無料で、クレジットカードは不要です。</p></div>
     <div class="q"><h4>連携をやめたいときは？</h4><p>Google アカウントの設定画面、または RevenueCat の設定画面からアクセス権を取り消してください。取り込み済みのデータは合理的な期間内に削除します（<a href="privacy.html">プライバシーポリシー</a>）。</p></div>
   </div>

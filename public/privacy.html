@@ -6,10 +6,13 @@
 <title>プライバシーポリシー — Fireboard</title>
 <!-- Google OAuth 審査で必須のページ。#google-api-data の英文（Limited Use の定型文）は
      審査担当者が同一性を確認する箇所なので、削除・言い換え禁止。
-     取得データは 5 ソース（App Store Connect は OAuth 非対応のため除外・2026-09-05 ユーザー裁定）。⚠️ OAuth 同意画面に登録する正式な
-     スコープ文字列（例: https://www.googleapis.com/auth/bigquery.readonly、
-     https://www.googleapis.com/auth/datastore、https://www.googleapis.com/auth/admob.readonly）は
-     未確定。確定したら「2. 取得する情報」に要求スコープ一覧として追記する。 -->
+     取得データは 4 ソース（App Store Connect は OAuth 非対応のため除外・2026-09-05 ユーザー裁定。
+     GA4 は BigQuery export を BigQuery のスコープで読むだけなので BigQuery に統合）。
+     要求スコープの一覧は「2. 取得する情報」末尾 #scopes。bigquery.readonly / bigquery / datastore は
+     本体 repo src/sources/gcp.ts の定数と一致させてある。
+     ⚠️ admob.readonly だけは本体 repo の scripts/admob-report.js --auth で発行した実スコープを未確認
+     （2026-09-05 時点でこのマシンに admob-report.js が無い）。admob.report だった場合はここと
+     index.html の AdMob カードを差し替える。 -->
 <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -45,14 +48,23 @@
 
   <section>
     <h2>2. 取得する情報および取得方法</h2>
-    <p>本サービスは、利用者が連携を許可した範囲で、以下のデータを各サービスの API 経由で取得します。取得はすべて読み取り専用で行い、本サービスから連携先のデータを変更・削除することはありません。</p>
+    <p>本サービスは、利用者が連携を許可した範囲で、以下のデータを各サービスの API 経由で取得します。取り込み元のデータは読み取りのみで、本サービスが連携先の元データを変更・削除することはありません。ただし BigQuery については、集計結果を保存するため、利用者のプロジェクト内の専用データセット（firestore_export）に本サービス専用のテーブルを作成・更新します。</p>
     <ul>
-      <li><b>Google Analytics 4 / BigQuery:</b> 利用者の Firebase Analytics（GA4）から BigQuery にエクスポートされたイベントデータ（イベント名、パラメータ、擬似ユーザー ID、日時）。Google アカウントの認可（OAuth 2.0）またはサービスアカウントで取得します。</li>
-      <li><b>Firestore:</b> 利用者が指定した Firebase プロジェクト内のコレクション（ユーザーログ、残高台帳、消費ログ等）。会話・メッセージの本文は取得しません。Google アカウントの認可またはサービスアカウントで取得します。</li>
+      <li><b>BigQuery（Firebase Analytics / GA4 の export）:</b> 利用者の Firebase Analytics（GA4）から BigQuery にエクスポートされたイベントデータ（イベント名、パラメータ、擬似ユーザー ID、日時）。Google アカウントの認可（OAuth 2.0）で BigQuery から取得します。Google Analytics 側の API は呼び出さず、GA4 の設定を変更することもありません。</li>
+      <li><b>Firestore:</b> 利用者が指定した Firebase プロジェクト内のコレクション（ユーザーログ、残高台帳、消費ログ等）。会話・メッセージの本文は取得しません。Google アカウントの認可（OAuth 2.0）で、読み取り API のみを用いて取得します。</li>
       <li><b>AdMob:</b> 広告収益のレポート（日次の収益、インプレッション）。Google アカウントの認可で取得します。</li>
       <li><b>RevenueCat:</b> サブスクリプション契約の状態、プラン、購入履歴、ストア別の売上。RevenueCat アカウントの認可（OAuth 2.0）で取得します。</li>
       <li><b>アカウント情報:</b> 本サービスへの登録時に取得する Google アカウントのメールアドレスと表示名。</li>
     </ul>
+    <h3 id="scopes">Google アカウントの認可で要求する権限</h3>
+    <ul class="scopes">
+      <li><code>https://www.googleapis.com/auth/bigquery.readonly</code><br>Firebase Analytics / GA4 の export テーブルの読み取り</li>
+      <li><code>https://www.googleapis.com/auth/bigquery</code><br>集計結果を保存する専用データセットのテーブル作成・更新</li>
+      <li><code>https://www.googleapis.com/auth/datastore</code><br>Firestore コレクションの読み取り。読み取り専用の権限が Google 側に存在しないためこの権限を要求しますが、本サービスは読み取り API（runQuery / partitionQuery）のみを呼び出します</li>
+      <li><code>https://www.googleapis.com/auth/admob.readonly</code><br>AdMob 広告収益レポートの読み取り</li>
+      <li><code>openid</code> / <code>email</code><br>本サービスへのサインイン</li>
+    </ul>
+    <p>Google Analytics の設定変更権限（analytics.edit）および Google Cloud 全体の権限（cloud-platform）は要求しません。Firebase Analytics から BigQuery への export は利用者側で事前に有効化していただく必要があります。</p>
   </section>
 
   <section>
